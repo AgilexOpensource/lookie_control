@@ -1,0 +1,3 @@
+[submodule "xr_media_ros"]
+	path = xr_media_ros
+	url = https://github.com/AgilexOpensource/xr_media_ros.git

@@ -1,0 +1,25 @@
+# ROS / colcon build outputs
+/build/
+/install/
+/log/
+
+# Python bytecode, local environments, and tool caches
+__pycache__/
+*.py[cod]
+*.egg-info/
+/.venv/
+/venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Local IDE metadata, editor backups, and OS metadata
+/.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
