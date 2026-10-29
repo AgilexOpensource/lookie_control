@@ -1,0 +1,156 @@
+# lookie_teleop for Lookie Trio r01 + Revo2 Standard r01
+lookie_teleop:
+  ros__parameters:
+    xr_prefix: /xr_media
+    kstone_prefix: /kstone
+    base_frame: chassis_base_link
+    rate_hz: 50.0
+    # Inputs older than these are treated as lost (arms disengage, base stops)
+    pose_timeout_s: 0.3
+    joy_timeout_s: 0.5
+    ee_pose_timeout_s: 1.0
+
+    # false: hold right B (long_press_s) to calibrate/home, then press right A
+    # to start; ~/enable bypasses the calibration
+    start_enabled: false
+    enabled_sides: [left, right]
+    task_ids: [left_arm, right_arm]          # kstone task id per side (left, right)
+    hand_joint_prefixes: [left_, right_]     # Revo2 joint name prefix per side
+    enable_hands: true
+
+    # Arm clutch: hold | double_press (tap, release, press and hold)
+    clutch_mode: hold
+    clutch_engage_threshold: 0.6
+    clutch_release_threshold: 0.3
+    # Hand tracking (no controller on that side). Gesture = both palms open, facing the
+    # headset and held still. Short hold (hold_s..long_s, fires on release): calibrate if not
+    # calibrated, else toggle start/stop. Long hold (>= long_s): calibrate (robot goes home,
+    # reference taken once both wrists settle after release). An arm engages only when the
+    # mapped wrist is within align_* of the measured EE; lost > lost_hold_s releases it.
+    gesture:
+      enabled: true
+      hold_s: 1.0                 # short gesture: hold >= hold_s (< long_s), fires on release
+      long_s: 3.0
+      palm_facing_deg: 45.0
+      open_curl_max: 1.0          # mean finger bend (rad) still counted as open
+      still_speed: 0.15           # m/s, wrists must be slower than this during the gesture
+      still_drift_m: 0.06         # m, a wrist moving farther than this from the hold start ends the hold
+      still_finger_deg: 20.0      # deg, a finger bending more than this from the hold start ends the hold
+      release_s: 0.3              # tracking flicker shorter than this does not end the hold
+      rearm_s: 0.5
+      settle_s: 0.8
+      settle_speed: 0.05
+      align_position_m: 0.05
+      align_angle_deg: 15.0
+      lost_hold_s: 0.2
+    long_press_s: 1.0
+
+    # Map operator motion into the robot frame using the headset heading at calibration
+    use_headset_yaw: true
+    # Local headset axis pointing forward (device front faces forward in both views)
+    headset_forward_axis: [1.0, 0.0, 0.0]
+
+    # How the headset is worn:
+    #   third_person: hung on the chest, operator watches the robot directly.
+    #     Torso follows the chest (yaw/pitch from the trunk, height from the
+    #     hip pivot); arms are mapped relative to the chest, so turning the
+    #     body turns the robot torso and the arms follow it. Calibrate (B)
+    #     standing upright, facing the robot's forward direction; the mount
+    #     tilt is measured then.
+    #   first_person: worn on the head. Arms map in the world (operator
+    #     heading); torso follows the head.
+    view_mode: third_person
+    first_person:
+      # translation: pitch = atan(head dx / lean_radius_m), ignores neck nods
+      # head: headset forward-axis elevation, includes neck nods
+      pitch_source: translation
+      lean_radius_m: 0.6
+    third_person:
+      # Hip pivot relative to the headset, in the body frame (x fwd, z up)
+      pivot_offset_m: [-0.1, 0.0, -0.45]
+
+    arm:
+      position_scale: 1.0
+      rotation_enabled: true
+      max_offset_m: 1.0
+      # Target position box in base_frame
+      workspace_min: [-0.2, -1.0, 0.0]
+      workspace_max: [1.2, 1.0, 1.8]
+      smoothing: 0.5   # per-tick low-pass factor, 1.0 = off
+      max_linear_speed: 1.5    # m/s target speed cap, 0 = off
+      max_angular_speed: 6.0   # rad/s target rotation cap, 0 = off
+      jump_reject_m: 0.15      # per-update controller jump treated as tracking glitch, 0 = off
+
+    hand:
+      # [thumb_metacarpal, thumb_proximal, index, middle, ring, pinky]
+      open_positions: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      closed_positions: [1.57, 1.03, 1.41, 1.41, 1.41, 1.41]
+      # Hand tracking metric ranges (open, closed). Kept narrow so anyone reaches
+      # full open/close; adaptive_range widens them to the operator's extremes
+      # (never past *_limits). Right B calibration resets them.
+      finger_curl_range: [0.5, 2.6]        # MCP+PIP+DIP bend sum (rad)
+      thumb_curl_range: [0.3, 1.1]         # thumb MCP+IP bend sum (rad)
+      thumb_opposition_range: [1.0, 0.7]   # thumb tip to pinky metacarpal / palm length
+      adaptive_range: true
+      finger_curl_limits: [0.0, 3.6]
+      thumb_curl_limits: [0.0, 2.0]
+      thumb_opposition_limits: [1.6, 0.3]
+      # Pinch: thumb-to-finger tip distance / palm length (start, full) blends
+      # [thumb_metacarpal, thumb_proximal, finger] to a pose whose Revo2 tips touch.
+      # The Revo2 thumb cannot reach ring (9 mm short) or pinky (24 mm short).
+      pinch_enabled: true
+      pinch_range: [0.45, 0.15]
+      pinch_fingers: [index, middle]
+      # 3 values per pinch_fingers entry, same order
+      pinch_positions: [1.17, 0.71, 0.65, 1.49, 0.63, 0.73]
+      pinch_release: 0.6                   # a completed pinch holds until the ratio exceeds this
+      pinch_max_curl: 0.8                  # finger curl (0..1) above which its pinch fades out
+      # One-Euro filter on the metrics; filter_min_cutoff <= 0 disables
+      filter_min_cutoff: 2.0               # Hz
+      filter_beta: 0.3
+      filter_d_cutoff: 1.0                 # Hz
+      palm_jump_ratio: 0.3                 # hold output when palm length jumps by > 30 %
+      trigger_deadzone: 0.02
+      # Controller trigger interval (after deadzone) over which each joint closes,
+      # flattened pairs: the thumb opposes first, then wraps over the fingers
+      trigger_ranges: [0.0, 0.5, 0.4, 1.0, 0.1, 1.0, 0.1, 1.0, 0.1, 1.0, 0.1, 1.0]
+
+    chassis:
+      enabled: true
+      deadzone: 0.15
+      max_linear: 0.4
+      max_angular: 0.8
+      # WebXR stick: right = +x, forward = -y
+      forward_sign: -1.0
+      lateral_sign: -1.0
+      yaw_sign: -1.0
+
+    # Headset -> torso follow (kstone task <kstone_prefix>/tasks/<torso_task_id>).
+    # Active only while an arm clutch is engaged; deltas from the headset pose
+    # at calibration (source depends on view_mode). On release the torso holds; right B
+    # long press (calibrate) returns it home. Scale 0 disables an axis.
+    torso_task_id: torso
+    torso:
+      enabled: true
+      height_scale: 1.0     # torso dz = scale * headset dz
+      forward_scale: 0.0    # torso dx = scale * headset dx (pitch already leans)
+      pitch_scale: 1.0
+      yaw_scale: 1.0
+      height_deadband_m: 0.02
+      forward_deadband_m: 0.02
+      pitch_deadband_rad: 0.05
+      yaw_deadband_rad: 0.05
+      # Offsets from torso home [min, max]
+      height_limits_m: [-0.30, 0.10]
+      forward_limits_m: [-0.05, 0.15]
+      pitch_limits_rad: [-0.15, 0.6]
+      yaw_limits_rad: [-1.2, 1.2]
+      smoothing: 0.3
+      max_linear_speed: 0.3   # m/s
+      max_angular_speed: 1.0  # rad/s
+      jump_reject_m: 0.15
+      # Right stick Y adds a height offset at any time (forward = up)
+      stick_side: right
+      stick_rate_mps: 0.15
+      stick_sign: -1.0
+      stick_deadzone: 0.3

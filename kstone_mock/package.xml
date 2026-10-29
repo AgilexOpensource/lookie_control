@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>kstone_mock</name>
+  <version>0.1.0</version>
+  <description>Temporary kstone_ros stand-in: MuJoCo whole-body IK and viewer exposing the kstone task-space interface</description>
+
+  <maintainer email="contact@agilex.ai">Agilex Robotics</maintainer>
+  <license>Apache-2.0</license>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>std_srvs</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>lookie_description</exec_depend>
+  <!-- MuJoCo and mink come from pip into the workspace venv (mujoco==3.3.7, mink==1.1.0, qpsolvers==4.12.0, daqp==0.10.3), see README -->
+
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

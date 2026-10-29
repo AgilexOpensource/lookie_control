@@ -1,0 +1,72 @@
+# kstone_mock for Lookie Trio r01 + Revo2 Standard r01
+kstone_mock:
+  ros__parameters:
+    description_package: lookie_description
+    model_name: lookie__pf-lookie_trio_r01__ee-revo2std_r01
+    prefix: /kstone
+    base_frame: chassis_base_link
+    world_frame: odom
+    control_rate_hz: 100.0
+    publish_rate_hz: 50.0
+
+    # Task id -> controlled MuJoCo body (URDF link)
+    task_ids: [left_arm, right_arm]
+    task_bodies: [left_base_link, right_base_link]
+
+    # Whole-body IK joints: torso + both arms. Base and head are not in IK.
+    ik_joints: [torso_joint1, torso_joint2, torso_joint3, torso_joint4,
+                l_arm_joint1, l_arm_joint2, l_arm_joint3, l_arm_joint4, l_arm_joint5, l_arm_joint6, l_arm_joint7,
+                r_arm_joint1, r_arm_joint2, r_arm_joint3, r_arm_joint4, r_arm_joint5, r_arm_joint6, r_arm_joint7]
+    # Joints with a higher motion cost, so arms move first
+    slow_joints: [torso_joint1, torso_joint2, torso_joint3, torso_joint4]
+    slow_joint_velocity_weight: 0.02
+    velocity_weight: 0.001
+    posture_weight: 0.001
+    posture_gain: 0.5
+    position_weight: 1.0
+    orientation_weight: 0.4
+    damping: 0.0001
+    max_joint_velocity: 3.0           # rad/s, all IK joints except slow_joints
+    # slow_joints: velocity cap and acceleration cap (rad/s^2, 0 = off). The
+    # acceleration cap keeps hand jerks off the torso; sustained demand such
+    # as turning still ramps it to full speed within v/a seconds.
+    slow_joint_max_velocity: 1.0
+    slow_joint_max_acceleration: 3.0
+    # Torso pose task, topics <prefix>/tasks/<torso_task_id>/{target,pose,
+    # home_pose,reset_target} in base_frame. Without a target it holds home.
+    # Weights per link axis; position [x, y, z], orientation [roll, pitch, yaw].
+    # Height and roll/pitch are stiff; x and yaw are moderate so a teleop
+    # target (headset follow) can drive them while arms can still pull the
+    # torso a little. For a static torso with arms-driven turning use
+    # [0, 0, 3] / [3, 3, 0.01] (yaw >= 0.1 pins the waist). All 0 disables.
+    torso_task_id: torso
+    torso_body: torso_link4
+    torso_position_weight: [1.0, 0.0, 3.0]
+    torso_orientation_weight: [3.0, 3.0, 0.3]
+    # Fraction of the torso error corrected per tick; < 1 avoids overshoot
+    # against the acceleration cap.
+    torso_gain: 0.3
+    ik_iterations: 2
+    # mink QP: hard joint limits (margin in rad/m, gain in (0, 1])
+    limit_margin: 0.01
+    limit_gain: 0.95
+    ik_solver: daqp
+    # Self-collision avoidance, "bodies A | bodies B" (URDF link names); [""] disables
+    collision_pairs:
+      - "l_arm_link3 l_arm_link4 l_arm_link5 l_arm_link6 l_arm_link7 l_flange l_flange1 left_base_link | r_arm_link3 r_arm_link4 r_arm_link5 r_arm_link6 r_arm_link7 r_flange r_flange1 right_base_link"
+      - "l_arm_link4 l_arm_link5 l_arm_link6 l_arm_link7 l_flange l_flange1 left_base_link | torso_link3 torso_link4"
+      - "r_arm_link4 r_arm_link5 r_arm_link6 r_arm_link7 r_flange r_flange1 right_base_link | torso_link3 torso_link4"
+    collision_min_distance: 0.01
+    collision_detection_distance: 0.1
+
+    # Revo2 / head joints set via /kstone/extra_joint_commands (mimics applied automatically)
+    extra_joint_max_velocity: 4.0
+
+    max_linear_velocity: 0.8
+    max_angular_velocity: 1.2
+    cmd_vel_timeout_s: 0.5
+
+    viewer: true
+    # Forward joint states to the real driver bridge. Keep false unless the robot is safe to move.
+    forward_to_driver: false
+    driver_command_topic: /trio/control/joint_states
